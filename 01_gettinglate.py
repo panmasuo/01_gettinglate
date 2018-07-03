@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 ## importowanie danych z pliku csv
-df = pd.read_csv("../data/gettinglate.csv")
+df = pd.read_csv("../../data/gettinglate.csv")
 
 def calculate_late_time(minutes, seconds):
     "Obliczenie czasu spóźninia na podstawie minut i sekund dla danego użytkownika"
@@ -40,8 +40,6 @@ def print_table(late_table1, late_table2):
     values_2 = {'Suma(min)': sum, '(h)': sum/60, 'Ilość': iter, 'Procent': iter/len(late_table2)*100,
             'Średnio': sum/iter}
             
-
-
     print('Imię\tMinuty\tGodziny\tIlość\tProcent\tŚrednio')
     print('Paweł\t{0[Suma(min)]:0.0f}min\t{0[(h)]:0.1f}h\t{0[Ilość]:d}\t{0[Procent]:0.1f}%\t{0[Średnio]:0.1f}min '.format(values_1))
     print('Kamil\t{0[Suma(min)]:0.0f}min\t{0[(h)]:0.1f}h\t{0[Ilość]:d}\t{0[Procent]:0.1f}%\t{0[Średnio]:0.1f}min '.format(values_2))
@@ -52,3 +50,19 @@ late_p = calculate_late_time('minp', 'secp')
 late_k = calculate_late_time('mink', 'seck')
 
 print_table(late_p, late_k)
+
+fig, ax = plt.subplots()
+for i in range(0, len(late_p)):
+    if late_p[i] > 0:
+        ax.plot(i, late_p[i], 'r.')
+    else:
+        ax.plot(i, 0, 'y*')
+    if late_k[i] > 0:
+        ax.plot(i, late_k[i], 'b+')
+    else:
+        ax.plot(i, 0, 'g*')
+
+ax.set(xlabel='Data', ylabel='Czas (minuty)',
+       title='Liczba minut spóźnienia dla danej daty')
+ax.grid()
+plt.show()
