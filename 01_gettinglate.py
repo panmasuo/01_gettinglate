@@ -2,10 +2,11 @@ import matplotlib.pyplot as plt
 import matplotlib.collections as collections
 import numpy as np
 import pandas as pd
+import seaborn as sns
 
 ## importowanie danych z pliku csv
 df = pd.read_csv("../../data/gettinglate.csv")
-colorTheme = '#bbff47'
+colorTheme = '#93d127'
 colorSecondary = '#fff4a8'
 colorPawel = '#a81212'
 colorKamil = '#084c7a'
@@ -29,18 +30,23 @@ df.columns = ['weekday', 'day', 'month', 'onhour', 'timep', 'presp', 'timek', 'p
 df.to_csv("../../data/gettinglate_new.csv")
 
 def plot_points():
+    "Rysowanie wykresu z punktami, które oznaczają czas spóźnenia w minutach"
     fig, ax = plt.subplots()
     # pierwszy punkt i label
-    ax.plot(0, df.at[0, 'timep'], color=colorPawel, marker='.', label="Paweł")
-    ax.plot(0, df.at[0, 'timek'], color=colorKamil, marker='+', label="Kamil")
+    ax.plot(0, df.at[0, 'timek'], color=colorKamil, marker='P', markersize=12, label="Kamil")
+    ax.plot(0, df.at[0, 'timep'], color=colorPawel, marker='.', markersize=14, label="Paweł")
 
+    # punkty z czasem spóźnienia
     for i in range(1, df.shape[0]):
-        # punkty z czasem spóźnienia
-        ax.plot(i, df.at[i, 'timep'], color=colorPawel, marker='.') 
-        ax.plot(i, df.at[i, 'timek'], color=colorKamil, marker='+')
+        ax.plot(i, df.at[i, 'timek'], color=colorKamil, marker='P', markersize=12)
+        ax.plot(i, df.at[i, 'timep'], color=colorPawel, marker='.', markersize=14) 
 
     # Oznaczenie osi
     ax.set(xlabel='Data', ylabel='Czas', title='Spóźnienia')
+
+    # Linie średniej
+    ax.hlines(13.16, 0, df.shape[0], color=colorPawel)
+    ax.hlines(7.18, 0, df.shape[0], color=colorKamil)
 
     # Legenda
     legend = ax.legend(loc='upper left', shadow=True)
@@ -51,13 +57,17 @@ def plot_points():
     major_ticksY = np.arange(0, 71, 5)
     minor_ticksX = np.arange(0, 61, 1)
     minor_ticksY = np.arange(0, 71, 1)
-
     # Linie pomocnicze, wyznaczanie
     ax.set_xticks(major_ticksX)
     ax.set_xticks(minor_ticksX, minor=True)
     ax.set_yticks(major_ticksY)
     ax.set_yticks(minor_ticksY, minor=True)
-
+    # Oznaczenia przedziałów na osi x
+    plt.xticks(np.arange(0, 61), df.day.astype(str), fontsize="8")
+    collection1 = collections.BrokenBarHCollection.span_where(range(0, df.shape[0]), ymin=0, ymax=70, where=df['month'] == 4, facecolor='grey', alpha=0.3)
+    collection2 = collections.BrokenBarHCollection.span_where(range(0, df.shape[0]), ymin=0, ymax=70, where=df['month'] == 6, facecolor='grey', alpha=0.3)
+    ax.add_collection(collection1)
+    ax.add_collection(collection2)
     # Linie pomocnicze, rysowanie
     ax.grid(which='minor', alpha=0.2)
     ax.grid(which='major', alpha=1)
@@ -100,7 +110,12 @@ def plot_sum():
     ax.set_xticks(minor_ticksX, minor=True)
     ax.set_yticks(major_ticksY)
     ax.set_yticks(minor_ticksY, minor=True)
-    
+    # Oznaczenia przedziałów na osi x
+    plt.xticks(np.arange(0, 61), df.day.astype(str), fontsize="8")
+    collection1 = collections.BrokenBarHCollection.span_where(range(0, df.shape[0]), ymin=0, ymax=700, where=df['month'] == 4, facecolor='grey', alpha=0.3)
+    collection2 = collections.BrokenBarHCollection.span_where(range(0, df.shape[0]), ymin=0, ymax=700, where=df['month'] == 6, facecolor='grey', alpha=0.3)
+    ax.add_collection(collection1)
+    ax.add_collection(collection2)
     # Linie pomocnicze, rysowanie
     ax.grid(which='minor', alpha=0.2)
     ax.grid(which='major', alpha=1)
@@ -126,24 +141,81 @@ def plot_present():
     temp2 = df[df.timek > 0].count()
     statsMeans = (temp1[0] / (60 - p) * 100, temp2[0] / (60 - k) * 100)
     statsTotal = (100 - statsMeans[0], 100 - statsMeans[1])
-    ind = np.arange(2)    # the x locations for the groups
+    ind = np.arange(2)    # lokacje na osi x
     width = 0.2       # the width of the bars: can also be len(x) sequence
 
+    # rysowanie słupków
     p1 = plt.bar(ind, statsMeans, width, color=[colorPawel, colorKamil])
     p2 = plt.bar(ind, statsTotal, width, bottom=statsMeans, color=colorSecondary)
 
+    # tekst na słupkach
+    for rect in p1:
+        height = rect.get_height()
+        plt.text(rect.get_x() + rect.get_width()/2.0, height, '%d' % int(height) + '%', ha='center', va='bottom')
+
+    # podpis osi
     plt.xticks(ind, ('Paweł', 'Kamil'))
     plt.yticks(np.arange(0, 101, 10))
     
-    #legend = plt.legend((p1[0], p2[0]), ('Spóźnienie', 'Całkowity czas'))
-    #legend.get_frame().set_facecolor(colorTheme)
+    # legenda
+    legend = plt.legend((p1[0], p1[1], p2[0]), ('[%] spóźnienie Paweł', '[%] spóźnienie Kamil', 'Całkowity czas'))
+    legend.get_frame().set_facecolor(colorTheme)
+
+    plt.show()
+    return
+    
+def CorrMtx(df1, dropDuplicates = True):
+
+    # Your dataset is already a correlation matrix.
+    # If you have a dateset where you need to include the calculation
+    # of a correlation matrix, just uncomment the line below:
+    df1 = df1.corr()
+
+    # Exclude duplicate correlations by masking uper right values
+    if dropDuplicates:    
+        mask = np.zeros_like(df1, dtype=np.bool)
+        mask[np.triu_indices_from(mask)] = True
+
+    # Set background color / chart style
+    sns.set_style(style = 'white')
+
+    # Set up  matplotlib figure
+    f, ax = plt.subplots(figsize=(11, 9))
+
+    # Add diverging colormap from red to blue
+    cmap = sns.diverging_palette(250, 10, as_cmap=True)
+
+    # Draw correlation plot with or without duplicates
+    if dropDuplicates:
+        sns.heatmap(df1, mask=mask, cmap=cmap, 
+                square=True,
+                linewidth=.5, cbar_kws={"shrink": .5}, ax=ax)
+    else:
+        sns.heatmap(df1, cmap=cmap, 
+                square=True,
+                linewidth=.5, cbar_kws={"shrink": .5}, ax=ax)
     plt.show()
     return
  
-#plot_points()
-plot_sum()
-#plot_present()
+# plot_points()
+# plot_sum()
+# plot_present()
 
+df1 = df.copy()
+df1 = df1.drop('presp', axis=1)
+df1 = df1.drop('presk', axis=1)
+df1 = df1.drop('day', axis=1)
+print(df1.corr())
+
+Var_Corr = df1.corr()
+# plot the heatmap and annotation on it
+#sns.heatmap(Var_Corr, xticklabels=Var_Corr.columns, yticklabels=Var_Corr.columns, annot=True)
+
+CorrMtx(df1, dropDuplicates = False)
+
+
+
+## inne, stare funkcje, na później
 
 # zaznaczenie obszaru
 #collection = collections.BrokenBarHCollection.span_where(range(0, df.shape[0]), ymin=0, ymax=70, where=df['timek'] <= 0, facecolor='green', alpha=0.5)
@@ -201,3 +273,31 @@ plot_sum()
 #             value = (df[minutes][i] + (df[seconds][i] / 60)) * -1
 #             time.append(value)
 #     return time
+
+
+
+    # while i < df.shape[0] - 1:
+    #     while prev < df.at[i, 'weekday']:
+    #         sumWeekP += df.at[i, 'timep']
+    #         sumWeekK += df.at[i, 'timek']
+    #         days += 1
+    #         prev = df.at[i, 'weekday']
+    #         i += 1
+
+    #     ax.hlines(sumWeekP / days, i - days, i - 1, color=colorPawel)
+    #     ax.hlines(sumWeekK / days, i - days, i - 1, color=colorKamil)
+    #     avgWeekP.append(sumWeekP / days)
+    #     avgWeekK.append(sumWeekK / days)
+    #     prev = df.at[i, 'weekday']
+    #     sumWeekP = df.at[i, 'timep']
+    #     sumWeekK = df.at[i, 'timek']
+    #     days = 1
+    #     i += 1
+    
+    # prev = df.at[0, 'weekday']
+    # sumWeekP = df.at[0, 'timep']
+    # sumWeekK = df.at[0, 'timek']
+    # days = 1
+    # avgWeekP = []
+    # avgWeekK = []
+    # i = 1
